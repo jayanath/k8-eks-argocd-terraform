@@ -1,0 +1,61 @@
+name: Base pipeline to deploy infrastructure components
+on:
+  workflow_call:
+    inputs:
+      work-dir:
+        required: true
+        type: string
+      aws-region:
+        required: true
+        type: string  
+    secrets:
+      CI_ROLE:
+        required: true
+
+jobs:
+  infra_deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      pull-requests: write
+      statuses: write
+      actions: read
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.work-dir }}
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ secrets.CI_ROLE }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - uses: actions/checkout@v3
+    - uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform fmt
+      id: fmt
+      run: terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Init
+      id: init
+      run: terraform init
+
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate -no-color
+
+    - name: Terraform Plan
+      id: plan
+      run: terraform plan -no-color -input=false
+      continue-on-error: true
+
+    - name: Terraform Plan Status
+      if: steps.plan.outcome == 'failure'
+      run: exit 1
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve -input=false

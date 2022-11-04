@@ -1,0 +1,12 @@
+name: Deploy VPC
+on:
+  workflow_dispatch:
+
+jobs:
+  call-deploy-workflow:
+    uses: ./.github/workflows/deploy.yaml
+    with: 
+      work-dir: "environments/dev/vpc"
+      aws-region: "us-west-2"
+    secrets:
+      CI_ROLE: ${{ secrets.AWS_CI_ROLE }}
