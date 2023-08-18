@@ -15,8 +15,6 @@ module "eks" {
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
   enable_irsa                     = true
-  cluster_ip_family               = "ipv6"
-  create_cni_ipv6_iam_policy      = true
 
   cluster_addons = {
     coredns = {
@@ -29,13 +27,6 @@ module "eks" {
       most_recent              = true
       before_compute           = true
       service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
-      configuration_values = jsonencode({
-        env = {
-          # Reference docs https://docs.aws.amazon.com/eks/latest/userguide/cni-increase-ip-addresses.html
-          ENABLE_PREFIX_DELEGATION = "true"
-          WARM_PREFIX_TARGET       = "1"
-        }
-      })
     }
   }
 
@@ -79,7 +70,6 @@ module "vpc_cni_irsa" {
 
   role_name_prefix      = "VPC-CNI-IRSA"
   attach_vpc_cni_policy = true
-  vpc_cni_enable_ipv6   = true
 
   oidc_providers = {
     main = {
