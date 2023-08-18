@@ -15,14 +15,27 @@ module "eks" {
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
   enable_irsa                     = true
+  cluster_ip_family               = "ipv6"
+  create_cni_ipv6_iam_policy      = true
 
   cluster_addons = {
     coredns = {
-      resolve_conflicts = "OVERWRITE"
+      most_recent = true
     }
-    kube-proxy = {}
+    kube-proxy = {
+      most_recent = true
+    }
     vpc-cni = {
-      resolve_conflicts = "OVERWRITE"
+      most_recent              = true
+      before_compute           = true
+      service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
+      configuration_values = jsonencode({
+        env = {
+          # Reference docs https://docs.aws.amazon.com/eks/latest/userguide/cni-increase-ip-addresses.html
+          ENABLE_PREFIX_DELEGATION = "true"
+          WARM_PREFIX_TARGET       = "1"
+        }
+      })
     }
   }
 
@@ -39,45 +52,6 @@ module "eks" {
     },
   ]
 
-  # Extend cluster security group rules
-  cluster_security_group_additional_rules = {
-    egress_nodes_ephemeral_ports_tcp = {
-      description                = "To node 1025-65535"
-      protocol                   = "tcp"
-      from_port                  = 1025
-      to_port                    = 65535
-      type                       = "egress"
-      source_node_security_group = true
-    }
-  }
-
-  node_security_group_additional_rules = {
-    ingress_allow_access_from_control_plane = {
-      type                          = "ingress"
-      protocol                      = "tcp"
-      from_port                     = 9443
-      to_port                       = 9443
-      source_cluster_security_group = true
-      description                   = "Allow access from control plane to webhook port of AWS load balancer controller"
-    }
-    ingress_self_all = {
-      description = "Node to node all ports/protocols"
-      protocol    = "-1"
-      from_port   = 0
-      to_port     = 0
-      type        = "ingress"
-      self        = true
-    }
-    egress_all = {
-      description      = "Node all egress"
-      protocol         = "-1"
-      from_port        = 0
-      to_port          = 0
-      type             = "egress"
-      cidr_blocks      = ["0.0.0.0/0"]
-      ipv6_cidr_blocks = ["::/0"]
-    }
-  }
 
   eks_managed_node_groups = {
     bottlerocket_nodes = {
@@ -97,4 +71,20 @@ module "eks" {
     }
   }
 
+}
+
+module "vpc_cni_irsa" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.0"
+
+  role_name_prefix      = "VPC-CNI-IRSA"
+  attach_vpc_cni_policy = true
+  vpc_cni_enable_ipv6   = true
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-node"]
+    }
+  }
 }
