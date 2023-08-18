@@ -2,7 +2,7 @@ data "terraform_remote_state" "eks" {
   backend = "s3"
 
   config = {
-    bucket = "k8-eks-argo-terraform-state-jay"
+    bucket = "eks-terraform-state-jay-9975"
     key    = "k8-demo-eks.tfstate"
     region = "us-west-2"
   }
