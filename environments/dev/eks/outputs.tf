@@ -11,5 +11,5 @@ output "cluster_certificate_authority_data" {
 }
 
 output "cluster_id" {
-  value = module.eks.cluster_id
+  value = module.eks.cluster_name
 }
