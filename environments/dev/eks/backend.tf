@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "k8-eks-argo-terraform-state-jay"
+    bucket = "eks-terraform-state-jay-9975"
     key    = "k8-demo-eks.tfstate"
     region = "us-west-2"
   }
