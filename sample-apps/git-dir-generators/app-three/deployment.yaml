@@ -43,6 +43,7 @@ metadata:
     alb.ingress.kubernetes.io/group.name: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
   name: nginx-3-ingress
 spec:
   rules:
@@ -56,3 +57,7 @@ spec:
                 name: nginx-3-service
                 port:
                   number: 80
+  tls:
+    - hosts:
+        - nginx3.jayforweb.com
+      secretName: aws-load-balancer-tls
